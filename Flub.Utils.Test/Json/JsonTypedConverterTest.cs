@@ -23,6 +23,9 @@ namespace Flub.Utils.Json.Test
         const int SUB4_TYPE = 4;
         const int SUB5_TYPE = 5;
         const int SUB6_TYPE = 5;
+        const string BASE2_PROPERTY_NAME = "status";
+        const string BASE2_TYPE = "0";
+        const string SUB21_TYPE = "1";
         static readonly string SUB1_VALUE = Guid.NewGuid().ToString();
         static readonly Sub2.Inner SUB2_VALUE = new() { Text = Guid.NewGuid().ToString() };
         static readonly int[] SUB3_VALUES = Enumerable.Range(0, 3).ToArray();
@@ -30,6 +33,7 @@ namespace Flub.Utils.Json.Test
         static readonly bool SUB4_VALUE2 = false;
         static readonly bool? SUB4_VALUE3 = null;
         static readonly JsonTypedConverter<Base, int> converter = new();
+        static readonly JsonTypedConverter<Base2, string> converter2 = new();
         static readonly JsonSerializerOptions options = new();
 
         abstract class Base : IJsonTyped<int>
@@ -117,6 +121,27 @@ namespace Flub.Utils.Json.Test
             }
         }
 
+        abstract class Base2 : IJsonTyped<string>
+        {
+            [JsonPropertyName(BASE2_PROPERTY_NAME)]
+            public string Type { get; } = BASE2_TYPE;
+
+            protected Base2(string type)
+            {
+                Type = type;
+            }
+        }
+        
+        [JsonTyped(SUB21_TYPE)]
+        class Sub21 : Base2
+        {
+            public Sub21()
+                : base(SUB21_TYPE)
+            {
+
+            }
+        }
+
         static Utf8JsonReader GetReader(string json)
         {
             Utf8JsonReader result = new(Encoding.UTF8.GetBytes(json));
@@ -197,6 +222,18 @@ namespace Flub.Utils.Json.Test
             Assert.AreEqual(SUB4_VALUE1, ((Sub4)result).Value1);
             Assert.AreEqual(SUB4_VALUE2, ((Sub4)result).Value2);
             Assert.AreEqual(SUB4_VALUE3, ((Sub4)result).Value3);
+        }
+
+        [Test]
+        public void ReadSub21Test()
+        {
+            Utf8JsonReader reader = GetReader($"{{\"{BASE2_PROPERTY_NAME}\":\"{SUB21_TYPE}\"}}");
+
+            Base2 result = converter2.Read(ref reader, null, options);
+
+            Assert.AreEqual(JsonTokenType.EndObject, reader.TokenType);
+            Assert.AreEqual(typeof(Sub21), result.GetType());
+            Assert.AreEqual(SUB21_TYPE, result.Type);
         }
 
         [Test]
