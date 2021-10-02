@@ -1,10 +1,12 @@
 using NUnit.Framework;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Flub.Utils.Json.Test
 {
+    [ExcludeFromCodeCoverage]
     public class JsonFieldEnumConverterTest
     {
         private const string EMPTY_JSON_STRING = "\"\"";

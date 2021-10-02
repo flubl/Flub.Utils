@@ -1,9 +1,11 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Flub.Utils.Json.Test
 {
+    [ExcludeFromCodeCoverage]
     public class JsonFieldValueAttributeTest
     {
         [Test]

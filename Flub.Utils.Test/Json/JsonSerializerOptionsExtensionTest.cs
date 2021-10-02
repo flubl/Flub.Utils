@@ -9,9 +9,9 @@ using System.Text.Json.Serialization;
 
 namespace Flub.Utils.Json.Test
 {
+    [ExcludeFromCodeCoverage]
     public class JsonSerializerOptionsExtensionTest
     {
-        [ExcludeFromCodeCoverage]
         class ExampleIntJsonConverter : JsonConverter<int>
         {
             public override int Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -25,7 +25,6 @@ namespace Flub.Utils.Json.Test
             }
         }
 
-        [ExcludeFromCodeCoverage]
         class ExampleStringJsonConverter : JsonConverter<string>
         {
             public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
