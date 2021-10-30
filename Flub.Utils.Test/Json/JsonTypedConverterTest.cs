@@ -1,15 +1,10 @@
-﻿using Moq;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text.Encodings.Web;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Reflection;
 
 namespace Flub.Utils.Json.Test
 {
@@ -38,12 +33,9 @@ namespace Flub.Utils.Json.Test
 
         abstract class Base : IJsonTyped<int>
         {
-            public int Type { get; } = BASE_TYPE;
+            public int Type { get; }
 
-            protected Base(int type)
-            {
-                Type = type;
-            }
+            protected Base(int type) { Type = type; }
         }
 
         [JsonTyped(SUB1_TYPE)]
@@ -51,11 +43,7 @@ namespace Flub.Utils.Json.Test
         {
             public string Value { get; set; }
 
-            public Sub1()
-                : base(SUB1_TYPE)
-            {
-
-            }
+            public Sub1() : base(SUB1_TYPE) { }
         }
 
         [JsonTyped(SUB2_TYPE)]
@@ -63,11 +51,7 @@ namespace Flub.Utils.Json.Test
         {
             public Inner Value { get; set; }
 
-            public Sub2()
-                : base(SUB2_TYPE)
-            {
-
-            }
+            public Sub2() : base(SUB2_TYPE) { }
 
             public class Inner
             {
@@ -80,11 +64,7 @@ namespace Flub.Utils.Json.Test
         {
             public int[] Values { get; set; }
 
-            public Sub3()
-                : base(SUB3_TYPE)
-            {
-
-            }
+            public Sub3() : base(SUB3_TYPE) { }
         }
 
         [JsonTyped(SUB4_TYPE)]
@@ -94,31 +74,19 @@ namespace Flub.Utils.Json.Test
             public bool Value2 { get; set; }
             public bool? Value3 { get; set; }
 
-            public Sub4()
-                : base(SUB4_TYPE)
-            {
-
-            }
+            public Sub4() : base(SUB4_TYPE) { }
         }
 
         [JsonTyped(SUB5_TYPE)]
-        class Sub5: Base
+        class Sub5 : Base
         {
-            public Sub5()
-                : base(SUB5_TYPE)
-            {
-
-            }
+            public Sub5() : base(SUB5_TYPE) { }
         }
 
         [JsonTyped(SUB6_TYPE)]
         class Sub6 : Base
         {
-            public Sub6()
-                : base(SUB6_TYPE)
-            {
-
-            }
+            public Sub6() : base(SUB6_TYPE) { }
         }
 
         abstract class Base2 : IJsonTyped<string>
@@ -126,20 +94,111 @@ namespace Flub.Utils.Json.Test
             [JsonPropertyName(BASE2_PROPERTY_NAME)]
             public string Type { get; } = BASE2_TYPE;
 
-            protected Base2(string type)
+            protected Base2(string type) { Type = type; }
+        }
+
+        [JsonTyped(SUB21_TYPE)]
+        class Sub21 : Base2
+        {
+            public Sub21() : base(SUB21_TYPE) { }
+        }
+
+        abstract class BaseEmpty
+        {
+
+        }
+
+        interface IBase : IJsonTyped<int>
+        {
+
+        }
+
+        abstract class BaseWithIBase : IBase
+        {
+            public int Type { get; } = BASE_TYPE;
+
+            protected BaseWithIBase(int type)
             {
                 Type = type;
             }
         }
-        
-        [JsonTyped(SUB21_TYPE)]
-        class Sub21 : Base2
-        {
-            public Sub21()
-                : base(SUB21_TYPE)
-            {
 
-            }
+        class ClassWithPropertyAttributeFactory
+        {
+            [JsonConverter(typeof(JsonTypedConverter))]
+            public Base Value { get; set; }
+        }
+
+        class ClassWithWrongPropertyAttributeFactory
+        {
+            [JsonConverter(typeof(JsonTypedConverter))]
+            public int Value { get; set; }
+        }
+
+        class ClassWithPropertyAttribute
+        {
+            [JsonConverter(typeof(JsonTypedConverter<Base, int>))]
+            public Base Value { get; set; }
+        }
+
+        class ClassWithWrongPropertyAttribute
+        {
+            [JsonConverter(typeof(JsonTypedConverter<Base, int>))]
+            public int Value { get; set; }
+        }
+
+        class ClassWithWrongGenericPropertyAttribute
+        {
+            [JsonConverter(typeof(JsonTypedConverter<Base2, string>))]
+            public Base Value { get; set; }
+        }
+
+        [JsonConverter(typeof(JsonTypedConverter))]
+        abstract class BaseWithAttributeFactory : IJsonTyped<int>
+        {
+            public int Type { get; } = BASE_TYPE;
+
+            protected BaseWithAttributeFactory(int type) { Type = type; }
+        }
+
+        [JsonTyped(SUB1_TYPE)]
+        class Sub1WithAttributeFactory : BaseWithAttributeFactory
+        {
+            public string Value { get; set; }
+
+            public Sub1WithAttributeFactory() : base(SUB1_TYPE) { }
+        }
+
+        [JsonTyped(SUB2_TYPE)]
+        class Sub2WithAttributeFactory : BaseWithAttributeFactory
+        {
+            public int Value { get; set; }
+
+            public Sub2WithAttributeFactory() : base(SUB2_TYPE) { }
+        }
+
+        [JsonConverter(typeof(JsonTypedConverter<BaseWithAttribute, int>))]
+        abstract class BaseWithAttribute : IJsonTyped<int>
+        {
+            public int Type { get; } = BASE_TYPE;
+
+            protected BaseWithAttribute(int type) { Type = type; }
+        }
+
+        [JsonTyped(SUB1_TYPE)]
+        class Sub1WithAttribute : BaseWithAttribute
+        {
+            public string Value { get; set; }
+
+            public Sub1WithAttribute() : base(SUB1_TYPE) { }
+        }
+
+        [JsonTyped(SUB2_TYPE)]
+        class Sub2WithAttribute : BaseWithAttribute
+        {
+            public int Value { get; set; }
+
+            public Sub2WithAttribute() : base(SUB2_TYPE) { }
         }
 
         static Utf8JsonReader GetReader(string json)
@@ -147,6 +206,38 @@ namespace Flub.Utils.Json.Test
             Utf8JsonReader result = new(Encoding.UTF8.GetBytes(json));
             result.Read();
             return result;
+        }
+
+        [Test]
+        public void ConverterFactoryCanConvertTest()
+        {
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(Base)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(IJsonTyped<int>)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(Sub1)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(Base2)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(IJsonTyped<string>)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(Sub21)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(IBase)));
+            Assert.IsTrue(new JsonTypedConverter().CanConvert(typeof(BaseWithIBase)));
+            Assert.IsFalse(new JsonTypedConverter().CanConvert(typeof(int)));
+            Assert.IsFalse(new JsonTypedConverter().CanConvert(typeof(string)));
+            Assert.IsFalse(new JsonTypedConverter().CanConvert(typeof(BaseEmpty)));
+        }
+
+        [Test]
+        public void ConverterFactoryCreateConverterTest()
+        {
+            Assert.AreEqual(typeof(JsonTypedConverter<Base, int>), new JsonTypedConverter().CreateConverter(typeof(Base), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<IJsonTyped<int>, int>), new JsonTypedConverter().CreateConverter(typeof(IJsonTyped<int>), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<Sub1, int>), new JsonTypedConverter().CreateConverter(typeof(Sub1), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<Base2, string>), new JsonTypedConverter().CreateConverter(typeof(Base2), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<IJsonTyped<string>, string>), new JsonTypedConverter().CreateConverter(typeof(IJsonTyped<string>), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<Sub21, string>), new JsonTypedConverter().CreateConverter(typeof(Sub21), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<IBase, int>), new JsonTypedConverter().CreateConverter(typeof(IBase), null).GetType());
+            Assert.AreEqual(typeof(JsonTypedConverter<BaseWithIBase, int>), new JsonTypedConverter().CreateConverter(typeof(BaseWithIBase), null).GetType());
+            Assert.Throws<InvalidOperationException>(() => new JsonTypedConverter().CreateConverter(typeof(int), null));
+            Assert.Throws<InvalidOperationException>(() => new JsonTypedConverter().CreateConverter(typeof(string), null));
+            Assert.Throws<InvalidOperationException>(() => new JsonTypedConverter().CreateConverter(typeof(BaseEmpty), null));
         }
 
         [Test]
@@ -301,6 +392,105 @@ namespace Flub.Utils.Json.Test
                 Utf8JsonReader reader = GetReader($"{{\"{nameof(Base.Type)}\":{SUB6_TYPE}}}");
                 converter.Read(ref reader, null, options);
             });
+        }
+
+        [Test]
+        public void ConvertWithPropertyAttributeFactoryTest()
+        {
+            Sub1 sub1 = new() { Value = SUB1_VALUE };
+            Sub2 sub2 = new() { Value = SUB2_VALUE };
+
+            ClassWithPropertyAttributeFactory expected1 = new() { Value = sub1 };
+            ClassWithPropertyAttributeFactory expected2 = new() { Value = sub2 };
+
+            string json1 = JsonSerializer.Serialize(expected1);
+            string json2 = JsonSerializer.Serialize(expected2);
+
+            ClassWithPropertyAttributeFactory actual1 = JsonSerializer.Deserialize<ClassWithPropertyAttributeFactory>(json1);
+            ClassWithPropertyAttributeFactory actual2 = JsonSerializer.Deserialize<ClassWithPropertyAttributeFactory>(json2);
+
+            Assert.AreEqual(typeof(Sub1), actual1.Value.GetType());
+            Assert.AreEqual(SUB1_VALUE, ((Sub1)actual1.Value).Value);
+
+            Assert.AreEqual(typeof(Sub2), actual2.Value.GetType());
+            Assert.AreEqual(SUB2_VALUE.Text, ((Sub2)actual2.Value).Value.Text);
+        }
+
+        [Test]
+        public void ConvertWithPropertyAttributeTest()
+        {
+            Sub1 sub1 = new() { Value = SUB1_VALUE };
+            Sub2 sub2 = new() { Value = SUB2_VALUE };
+
+            ClassWithPropertyAttribute expected1 = new() { Value = sub1 };
+            ClassWithPropertyAttribute expected2 = new() { Value = sub2 };
+
+            string json1 = JsonSerializer.Serialize(expected1);
+            string json2 = JsonSerializer.Serialize(expected2);
+
+            ClassWithPropertyAttribute actual1 = JsonSerializer.Deserialize<ClassWithPropertyAttribute>(json1);
+            ClassWithPropertyAttribute actual2 = JsonSerializer.Deserialize<ClassWithPropertyAttribute>(json2);
+
+            Assert.AreEqual(typeof(Sub1), actual1.Value.GetType());
+            Assert.AreEqual(SUB1_VALUE, ((Sub1)actual1.Value).Value);
+
+            Assert.AreEqual(typeof(Sub2), actual2.Value.GetType());
+            Assert.AreEqual(SUB2_VALUE.Text, ((Sub2)actual2.Value).Value.Text);
+        }
+
+        [Test]
+        public void ConvertWithPropertyAttributeThrowsExceptionsTest()
+        {
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize(new ClassWithWrongPropertyAttributeFactory()));
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Deserialize<ClassWithWrongPropertyAttributeFactory>("{}"));
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize(new ClassWithWrongPropertyAttribute()));
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Deserialize<ClassWithWrongPropertyAttribute>("{}"));
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize(new ClassWithWrongGenericPropertyAttribute()));
+            Assert.Throws<InvalidOperationException>(() => JsonSerializer.Deserialize<ClassWithWrongGenericPropertyAttribute>("{}"));
+        }
+
+        [Test]
+        public void ConvertWithAttributeFactoryTest()
+        {
+            string valueSub1 = Guid.NewGuid().ToString();
+            int valueSub2 = 12;
+
+            Sub1WithAttributeFactory expectedSub1 = new() { Value = valueSub1 };
+            Sub2WithAttributeFactory expectedSub2 = new() { Value = valueSub2 };
+
+            string jsonSub1 = JsonSerializer.Serialize(expectedSub1);
+            string jsonSub2 = JsonSerializer.Serialize(expectedSub2);
+
+            BaseWithAttributeFactory actualSub1 = JsonSerializer.Deserialize<BaseWithAttributeFactory>(jsonSub1);
+            BaseWithAttributeFactory actualSub2 = JsonSerializer.Deserialize<BaseWithAttributeFactory>(jsonSub2);
+
+            Assert.AreEqual(typeof(Sub1WithAttributeFactory), actualSub1.GetType());
+            Assert.AreEqual(valueSub1, ((Sub1WithAttributeFactory)actualSub1).Value);
+
+            Assert.AreEqual(typeof(Sub2WithAttributeFactory), actualSub2.GetType());
+            Assert.AreEqual(valueSub2, ((Sub2WithAttributeFactory)actualSub2).Value);
+        }
+
+        [Test]
+        public void ConvertWithAttributeTest()
+        {
+            string valueSub1 = Guid.NewGuid().ToString();
+            int valueSub2 = 12;
+
+            Sub1WithAttribute expectedSub1 = new() { Value = valueSub1 };
+            Sub2WithAttribute expectedSub2 = new() { Value = valueSub2 };
+
+            string jsonSub1 = JsonSerializer.Serialize(expectedSub1);
+            string jsonSub2 = JsonSerializer.Serialize(expectedSub2);
+
+            BaseWithAttribute actualSub1 = JsonSerializer.Deserialize<BaseWithAttribute>(jsonSub1);
+            BaseWithAttribute actualSub2 = JsonSerializer.Deserialize<BaseWithAttribute>(jsonSub2);
+
+            Assert.AreEqual(typeof(Sub1WithAttribute), actualSub1.GetType());
+            Assert.AreEqual(valueSub1, ((Sub1WithAttribute)actualSub1).Value);
+
+            Assert.AreEqual(typeof(Sub2WithAttribute), actualSub2.GetType());
+            Assert.AreEqual(valueSub2, ((Sub2WithAttribute)actualSub2).Value);
         }
     }
 }

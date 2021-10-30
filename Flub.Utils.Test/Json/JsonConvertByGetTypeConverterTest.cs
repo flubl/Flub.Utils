@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Flub.Utils.Json.Test
 {
@@ -23,14 +24,40 @@ namespace Flub.Utils.Json.Test
             public string Name { get; } = NAME;
         }
 
+        class SubWithPropertyAttribute
+        {
+            [JsonConverter(typeof(JsonConvertByGetTypeConverter))]
+            public Sub Sub { get; set; }
+        }
+
+        class SubWithPropertyAttributeBase
+        {
+            [JsonConverter(typeof(JsonConvertByGetTypeConverter<Base>))]
+            public Sub Sub { get; set; }
+        }
+
         [Test]
         public void CanConvertTest()
         {
+            Assert.IsTrue(new JsonConvertByGetTypeConverter().CanConvert(typeof(int)));
+            Assert.IsTrue(new JsonConvertByGetTypeConverter().CanConvert(typeof(string)));
+            Assert.IsTrue(new JsonConvertByGetTypeConverter().CanConvert(typeof(Base)));
+            Assert.IsTrue(new JsonConvertByGetTypeConverter().CanConvert(typeof(Sub)));
+
             Assert.IsTrue(new JsonConvertByGetTypeConverter<int>().CanConvert(typeof(int)));
             Assert.IsFalse(new JsonConvertByGetTypeConverter<string>().CanConvert(typeof(int)));
             Assert.IsTrue(new JsonConvertByGetTypeConverter<Base>().CanConvert(typeof(Base)));
             Assert.IsFalse(new JsonConvertByGetTypeConverter<Sub>().CanConvert(typeof(Base)));
             Assert.IsTrue(new JsonConvertByGetTypeConverter<Base>().CanConvert(typeof(Sub)));
+        }
+
+        [Test]
+        public void GetConverterTest()
+        {
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<int>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(int), null).GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<string>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(string), null).GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Base>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Base), null).GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Sub>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Sub), null).GetType());
         }
 
         [Test]
@@ -41,12 +68,15 @@ namespace Flub.Utils.Json.Test
                 Utf8JsonReader reader = new();
                 new JsonConvertByGetTypeConverter<int>().Read(ref reader, null, null);
             });
+            string json = "{\"Sub\":{}}";
+            Assert.Throws<NotSupportedException>(() => JsonSerializer.Deserialize<SubWithPropertyAttribute>(json));
+            Assert.Throws<NotSupportedException>(() => JsonSerializer.Deserialize<SubWithPropertyAttributeBase>(json));
         }
 
         [Test]
         public void WriteTest()
         {
-            string Convert<T>(JsonConvertByGetTypeConverter<T> converter, T value, JsonSerializerOptions options)
+            static string Convert<T>(JsonConvertByGetTypeConverter<T> converter, T value, JsonSerializerOptions options)
             {
                 using MemoryStream stream = new();
                 using Utf8JsonWriter writer = new(stream);
@@ -72,6 +102,21 @@ namespace Flub.Utils.Json.Test
             Assert.AreEqual(expectedBaseJson, result1);
             Assert.AreEqual(expectedSubJson, result2);
             Assert.AreEqual(expectedSubJson, result3);
+        }
+
+        [Test]
+        public void WriteWithAttributeTest()
+        {
+            string expectedSubWithPropertyAttributeJson = $"{{\"{nameof(SubWithPropertyAttribute.Sub)}\":{{"
+                + $"\"{nameof(SubWithPropertyAttribute.Sub.Name)}\":\"{NAME}\",\"{nameof(SubWithPropertyAttribute.Sub.Value)}\":\"{VALUE}\"}}}}";
+            string expectedSubWithPropertyAttributeBaseJson = $"{{\"{nameof(SubWithPropertyAttributeBase.Sub)}\":{{"
+                + $"\"{nameof(SubWithPropertyAttributeBase.Sub.Name)}\":\"{NAME}\",\"{nameof(SubWithPropertyAttributeBase.Sub.Value)}\":\"{VALUE}\"}}}}";
+
+            string actualSubWithPropertyAttributeJson = JsonSerializer.Serialize(new SubWithPropertyAttribute() { Sub = new() });
+            string actualSubWithPropertyAttributeBaseJson = JsonSerializer.Serialize(new SubWithPropertyAttributeBase() { Sub = new() });
+
+            Assert.AreEqual(expectedSubWithPropertyAttributeJson, actualSubWithPropertyAttributeJson);
+            Assert.AreEqual(expectedSubWithPropertyAttributeBaseJson, actualSubWithPropertyAttributeBaseJson);
         }
     }
 }

@@ -8,13 +8,27 @@ using System.Text.Json.Serialization;
 namespace Flub.Utils.Json
 {
     /// <summary>
+    /// Supports converting several types by using a factory pattern to create a <see cref="JsonTypedConverter{TBase, TType}"/> converter.
+    /// </summary>
+    public sealed class JsonTypedConverter : JsonConverterFactory
+    {
+        private static bool IsIJsonTyped(Type type) => type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(IJsonTyped<>);
+        private static Type GetIJsonTypedGenericArgument(Type type) => (IsIJsonTyped(type) ? type : type.GetInterfaces().First(IsIJsonTyped)).GenericTypeArguments.Single();
+
+        public override bool CanConvert(Type typeToConvert) => IsIJsonTyped(typeToConvert) || typeToConvert.GetInterfaces().Any(IsIJsonTyped);
+
+        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+            (JsonConverter)Activator.CreateInstance(typeof(JsonTypedConverter<,>).MakeGenericType(typeToConvert, GetIJsonTypedGenericArgument(typeToConvert)));
+    }
+
+    /// <summary>
     /// Converts an object with the specified base type to or from JSON.
     /// Determindes the type of the object from a property value when converting from JSON.
     /// Uses the GetType() method of the object to determind the type when converting to JSON.
     /// </summary>
     /// <typeparam name="TBase">The base type of object handled by the converter.</typeparam>
     /// <typeparam name="TType">The type of the property to get type from.</typeparam>
-    public class JsonTypedConverter<TBase, TType> : JsonConvertByGetTypeConverter<TBase> where TBase : IJsonTyped<TType>
+    public sealed class JsonTypedConverter<TBase, TType> : JsonConvertByGetTypeConverter<TBase> where TBase : IJsonTyped<TType>
     {
         private readonly static PropertyInfo Property = typeof(TBase).GetProperty(nameof(IJsonTyped<TType>.Type));
         private readonly static bool ValidPropertyType = Property?.PropertyType == typeof(TType);

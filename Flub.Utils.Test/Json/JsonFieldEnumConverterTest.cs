@@ -12,9 +12,44 @@ namespace Flub.Utils.Json.Test
         private const string EMPTY_JSON_STRING = "\"\"";
 
         [Test]
+        public void ConverterFactoryCanConvertTest()
+        {
+            Assert.IsTrue(new JsonFieldEnumConverter().CanConvert(typeof(TestEnumWithoutConverter)));
+            Assert.IsFalse(new JsonFieldEnumConverter().CanConvert(typeof(int)));
+            Assert.IsFalse(new JsonFieldEnumConverter().CanConvert(typeof(string)));
+            Assert.IsFalse(new JsonFieldEnumConverter().CanConvert(typeof(Enum)));
+            Assert.IsFalse(new JsonFieldEnumConverter().CanConvert(typeof(TestClass)));
+        }
+
+        [Test]
+        public void ConverterFactoryCreateConverter()
+        {
+            Assert.AreEqual(typeof(JsonFieldEnumConverter<TestEnumWithoutConverter>), new JsonFieldEnumConverter().CreateConverter(typeof(TestEnumWithoutConverter), null).GetType());
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(int), null));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(string), null));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(Enum), null));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(TestClass), null));
+        }
+
+        [Test]
         public void ConverterInOptionsTest()
         {
             var options = new JsonSerializerOptions() { Converters = { new JsonFieldEnumConverter<TestEnumWithoutConverter>() } };
+
+            var value = TestEnumWithoutConverter.Other;
+            var valueJson = "\"other\"";
+
+            var valueResult = JsonSerializer.Deserialize<TestEnumWithoutConverter>(valueJson, options);
+            var valueJsonResult = JsonSerializer.Serialize(value, options);
+
+            Assert.AreEqual(value, valueResult);
+            Assert.AreEqual(valueJson, valueJsonResult);
+        }
+
+        [Test]
+        public void ConverterFactoryInOptionsTest()
+        {
+            var options = new JsonSerializerOptions() { Converters = { new JsonFieldEnumConverter() } };
 
             var value = TestEnumWithoutConverter.Other;
             var valueJson = "\"other\"";
@@ -40,12 +75,38 @@ namespace Flub.Utils.Json.Test
         }
 
         [Test]
+        public void ConverterFactoryInPropertyAttributeTest()
+        {
+            var value = new TestClassFactory { Value = TestEnumWithoutConverter.Other };
+            var valueJson = "{\"Value\":\"other\"}";
+
+            var valueResult = JsonSerializer.Deserialize<TestClassFactory>(valueJson);
+            var valueJsonResult = JsonSerializer.Serialize(value);
+
+            Assert.AreEqual(value.Value, valueResult.Value);
+            Assert.AreEqual(valueJson, valueJsonResult);
+        }
+
+        [Test]
         public void ConverterInEnumAttributeTest()
         {
             var value = TestEnumWithConverter.Other;
             var valueJson = "\"other\"";
 
             var valueResult = JsonSerializer.Deserialize<TestEnumWithConverter>(valueJson);
+            var valueJsonResult = JsonSerializer.Serialize(value);
+
+            Assert.AreEqual(value, valueResult);
+            Assert.AreEqual(valueJson, valueJsonResult);
+        }
+
+        [Test]
+        public void ConverterFactoryInEnumAttributeTest()
+        {
+            var value = TestEnumWithConverterFactory.Other;
+            var valueJson = "\"other\"";
+
+            var valueResult = JsonSerializer.Deserialize<TestEnumWithConverterFactory>(valueJson);
             var valueJsonResult = JsonSerializer.Serialize(value);
 
             Assert.AreEqual(value, valueResult);
@@ -208,6 +269,15 @@ namespace Flub.Utils.Json.Test
             Other
         }
 
+        [JsonConverter(typeof(JsonFieldEnumConverter))]
+        enum TestEnumWithConverterFactory
+        {
+            [JsonFieldValue("none")]
+            None,
+            [JsonFieldValue("other")]
+            Other
+        }
+
         [JsonConverter(typeof(JsonFieldEnumConverter<TestEnumWithoutConverter>))]
         enum TestEnumWithWrongConverter
         {
@@ -218,6 +288,12 @@ namespace Flub.Utils.Json.Test
         class TestClass
         {
             [JsonConverter(typeof(JsonFieldEnumConverter<TestEnumWithoutConverter>))]
+            public TestEnumWithoutConverter Value { get; set; }
+        }
+
+        class TestClassFactory
+        {
+            [JsonConverter(typeof(JsonFieldEnumConverter))]
             public TestEnumWithoutConverter Value { get; set; }
         }
 

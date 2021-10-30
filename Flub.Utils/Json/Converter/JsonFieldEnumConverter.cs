@@ -9,6 +9,17 @@ using System.Text.Json.Serialization;
 namespace Flub.Utils.Json
 {
     /// <summary>
+    /// Supports converting several types by using a factory pattern to create a <see cref="JsonFieldEnumConverter{TBase}"/> converter.
+    /// </summary>
+    public sealed class JsonFieldEnumConverter : JsonConverterFactory
+    {
+        public override bool CanConvert(Type typeToConvert) => typeToConvert.IsEnum;
+
+        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+            (JsonConverter)Activator.CreateInstance(typeof(JsonFieldEnumConverter<>).MakeGenericType(typeToConvert));
+    }
+
+    /// <summary>
     /// Converts enumeration values to and from strings.
     /// Values can be altered by <see cref="JsonFieldValueAttribute"/> attribute.
     /// </summary>
