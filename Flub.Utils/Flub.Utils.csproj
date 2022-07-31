@@ -1,15 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Authors>Luca Stäheli</Authors>
     <PackageId>Flub.Utils</PackageId>
     <Product>Flub.Utils</Product>
-    <Version>1.0.3</Version>
+    <Version>1.2.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <RepositoryUrl>https://github.com/flubl/Flub.Utils</RepositoryUrl>
     <PackageProjectUrl>https://github.com/flubl/Flub.Utils</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
