@@ -1,9 +1,5 @@
 ﻿using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -31,14 +27,14 @@ namespace Flub.Utils.Json.Test
 
         class TestClass
         {
-            [JsonConverter(typeof(JsonDictionaryConverter<Dictionary<TestEnumWithConverter, string>, TestEnumWithConverter, string>))]
-            public Dictionary<TestEnumWithConverter, string> Value { get; set; }
+            [JsonConverter(typeof(JsonDictionaryConverter<Dictionary<TestEnumWithConverter, string?>, TestEnumWithConverter, string>))]
+            public Dictionary<TestEnumWithConverter, string> Value { get; set; } = new();
         }
 
         class TestClassFactory
         {
             [JsonConverter(typeof(JsonDictionaryConverter))]
-            public Dictionary<TestEnumWithConverter, string> Value { get; set; }
+            public Dictionary<TestEnumWithConverter, string> Value { get; set; } = new();
         }
 
         class TestClassWithoutConverter

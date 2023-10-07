@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Flub.Utils.Json
+﻿namespace Flub.Utils.Json
 {
     /// <summary>
     /// Specifies a value to a class.

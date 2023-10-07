@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -15,10 +12,12 @@ namespace Flub.Utils.Json
         private static bool IsIJsonTyped(Type type) => type.IsConstructedGenericType && type.GetGenericTypeDefinition() == typeof(IJsonTyped<>);
         private static Type GetIJsonTypedGenericArgument(Type type) => (IsIJsonTyped(type) ? type : type.GetInterfaces().First(IsIJsonTyped)).GenericTypeArguments.Single();
 
+        /// <inheritdoc/>
         public override bool CanConvert(Type typeToConvert) => IsIJsonTyped(typeToConvert) || typeToConvert.GetInterfaces().Any(IsIJsonTyped);
 
-        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
-            (JsonConverter)Activator.CreateInstance(typeof(JsonTypedConverter<,>).MakeGenericType(typeToConvert, GetIJsonTypedGenericArgument(typeToConvert)));
+        /// <inheritdoc/>
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+            (JsonConverter?)Activator.CreateInstance(typeof(JsonTypedConverter<,>).MakeGenericType(typeToConvert, GetIJsonTypedGenericArgument(typeToConvert)));
     }
 
     /// <summary>
@@ -30,12 +29,14 @@ namespace Flub.Utils.Json
     /// <typeparam name="TType">The type of the property to get type from.</typeparam>
     public sealed class JsonTypedConverter<TBase, TType> : JsonConvertByGetTypeConverter<TBase> where TBase : IJsonTyped<TType>
     {
-        private readonly static PropertyInfo Property = typeof(TBase).GetProperty(nameof(IJsonTyped<TType>.Type));
+        private readonly static PropertyInfo Property = typeof(TBase).GetProperty(nameof(IJsonTyped<TType>.Type)) ?? throw new Exception("property was null");
         private readonly static bool ValidPropertyType = Property?.PropertyType == typeof(TType);
 
+        /// <inheritdoc/>
         public override bool CanConvert(Type typeToConvert) =>
             ValidPropertyType && (typeToConvert?.IsAssignableTo(typeof(TBase)) ?? false);
 
+        /// <inheritdoc/>
         public override TBase Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType != JsonTokenType.StartObject)
@@ -43,7 +44,7 @@ namespace Flub.Utils.Json
             string propertyName = Property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? Property.Name;
             int index = 0;
             bool valueFound = false;
-            TType value = default;
+            TType? value = default;
             using MemoryStream stream = new();
             using Utf8JsonWriter writer = new(stream);
             writer.WriteStartObject();
@@ -52,7 +53,7 @@ namespace Flub.Utils.Json
                 switch (reader.TokenType)
                 {
                     case JsonTokenType.PropertyName:
-                        string name = reader.GetString();
+                        string? name = reader.GetString() ?? throw new NullReferenceException("property name can not be null");
                         writer.WritePropertyName(name);
                         if (!valueFound && name == propertyName && index == 0 && reader.Read())
                         {
@@ -100,13 +101,13 @@ namespace Flub.Utils.Json
                 throw new JsonException($"No value for '{propertyName}' found.");
             try
             {
-                Type returnType = Assembly.GetAssembly(typeof(TBase)).GetTypes()
+                Type? returnType = (Assembly.GetAssembly(typeof(TBase))?.GetTypes()
                     .Where(t => t.IsAssignableTo(typeof(TBase)))
-                    .SingleOrDefault(t => t.GetCustomAttribute<JsonTypedAttribute>() is JsonTypedAttribute a && Equals(a.Value, value));
-                if (returnType is null)
-                    throw new JsonException($"No {typeof(TBase)} found with value '{value}'.");
+                    .SingleOrDefault(t => t.GetCustomAttribute<JsonTypedAttribute>() is JsonTypedAttribute a && Equals(a.Value, value)))
+                        ?? throw new JsonException($"No {typeof(TBase)} found with value '{value}'.");
                 var subReader = new Utf8JsonReader(stream.ToArray());
-                return (TBase)JsonSerializer.Deserialize(ref subReader, returnType, options?.GetWithoutConverter<JsonTypedConverter<TBase, TType>>());
+                return (TBase?)JsonSerializer.Deserialize(ref subReader, returnType, options?.GetWithoutConverter<JsonTypedConverter<TBase, TType>>())
+                    ?? throw new JsonException("Result was null");
             }
             catch (InvalidOperationException)
             {

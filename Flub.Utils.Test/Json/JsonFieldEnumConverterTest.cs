@@ -1,6 +1,6 @@
 using NUnit.Framework;
-using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,11 +24,11 @@ namespace Flub.Utils.Json.Test
         [Test]
         public void ConverterFactoryCreateConverter()
         {
-            Assert.AreEqual(typeof(JsonFieldEnumConverter<TestEnumWithoutConverter>), new JsonFieldEnumConverter().CreateConverter(typeof(TestEnumWithoutConverter), null).GetType());
-            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(int), null));
-            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(string), null));
-            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(Enum), null));
-            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(TestClass), null));
+            Assert.AreEqual(typeof(JsonFieldEnumConverter<TestEnumWithoutConverter>), new JsonFieldEnumConverter().CreateConverter(typeof(TestEnumWithoutConverter), JsonSerializerOptions.Default)?.GetType());
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(int), JsonSerializerOptions.Default));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(string), JsonSerializerOptions.Default));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(Enum), JsonSerializerOptions.Default));
+            Assert.Throws<ArgumentException>(() => new JsonFieldEnumConverter().CreateConverter(typeof(TestClass), JsonSerializerOptions.Default));
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace Flub.Utils.Json.Test
             var valueResult = JsonSerializer.Deserialize<TestClass>(valueJson);
             var valueJsonResult = JsonSerializer.Serialize(value);
 
-            Assert.AreEqual(value.Value, valueResult.Value);
+            Assert.AreEqual(value.Value, valueResult?.Value);
             Assert.AreEqual(valueJson, valueJsonResult);
         }
 
@@ -83,7 +83,7 @@ namespace Flub.Utils.Json.Test
             var valueResult = JsonSerializer.Deserialize<TestClassFactory>(valueJson);
             var valueJsonResult = JsonSerializer.Serialize(value);
 
-            Assert.AreEqual(value.Value, valueResult.Value);
+            Assert.AreEqual(value.Value, valueResult?.Value);
             Assert.AreEqual(valueJson, valueJsonResult);
         }
 
@@ -125,7 +125,7 @@ namespace Flub.Utils.Json.Test
         {
             static void AssertDuplicationThrowsException<T>() where T : Enum
             {
-                Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize<T>(default));
+                Assert.Throws<InvalidOperationException>(() => JsonSerializer.Serialize<T?>(default));
                 Assert.Throws<InvalidOperationException>(() => JsonSerializer.Deserialize<T>(EMPTY_JSON_STRING));
             }
 
@@ -231,7 +231,9 @@ namespace Flub.Utils.Json.Test
             converter.FlagsSeperator = seperator;
             Assert.AreEqual(seperator, converter.FlagsSeperator);
 
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentException>(() => converter.FlagsSeperator = null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentException>(() => converter.FlagsSeperator = string.Empty);
         }
 
@@ -248,6 +250,19 @@ namespace Flub.Utils.Json.Test
 
             Assert.AreEqual(value, valueResult);
             Assert.AreEqual(valueJson, valueJsonResult);
+        }
+
+        [Test]
+        public void ReadThrowsNullReferenceExceptionTest()
+        {
+            var nullValueJson = "null";
+            Assert.Throws<NullReferenceException>(() =>
+            {
+                Utf8JsonReader reader = new(Encoding.UTF8.GetBytes(nullValueJson));
+                reader.Read();
+                new JsonFieldEnumConverter<TestEnumWithoutConverter>().Read(ref reader, typeof(TestEnumWithoutConverter), JsonSerializerOptions.Default);
+            });
+            Assert.Throws<NullReferenceException>(() => JsonSerializer.Deserialize<TestEnumWithConverter>(nullValueJson));
         }
 
         #region Enums

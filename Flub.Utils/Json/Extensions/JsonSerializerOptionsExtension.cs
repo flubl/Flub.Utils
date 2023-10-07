@@ -1,10 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Flub.Utils.Json
 {
+    /// <summary>
+    /// Contains some JsonSerializerOptions Extension Methods
+    /// </summary>
     public static class JsonSerializerOptionsExtension
     {
         /// <summary>

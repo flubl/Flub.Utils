@@ -1,7 +1,5 @@
 ﻿using NUnit.Framework;
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -27,13 +25,31 @@ namespace Flub.Utils.Json.Test
         class SubWithPropertyAttribute
         {
             [JsonConverter(typeof(JsonConvertByGetTypeConverter))]
-            public Sub Sub { get; set; }
+            public Sub Sub { get; set; } = new();
         }
 
         class SubWithPropertyAttributeBase
         {
             [JsonConverter(typeof(JsonConvertByGetTypeConverter<Base>))]
-            public Sub Sub { get; set; }
+            public Sub Sub { get; set; } = new();
+        }
+
+        class SubWithNullablePropertyAndPropertyAttribute
+        {
+            [JsonConverter(typeof(JsonConvertByGetTypeConverter))]
+            public Sub? Sub { get; set; } = null;
+        }
+
+        class SubWithNullablePropertyAndPropertyAttributeBase
+        {
+            [JsonConverter(typeof(JsonConvertByGetTypeConverter<Base>))]
+            public Sub? Sub { get; set; } = null;
+        }
+
+        [JsonConverter(typeof(JsonConvertByGetTypeConverter))]
+        class SubWithClassAttribute
+        {
+            public string Value { get; } = VALUE;
         }
 
         [Test]
@@ -54,10 +70,10 @@ namespace Flub.Utils.Json.Test
         [Test]
         public void GetConverterTest()
         {
-            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<int>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(int), null).GetType());
-            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<string>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(string), null).GetType());
-            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Base>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Base), null).GetType());
-            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Sub>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Sub), null).GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<int>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(int), JsonSerializerOptions.Default)?.GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<string>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(string), JsonSerializerOptions.Default)?.GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Base>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Base), JsonSerializerOptions.Default)?.GetType());
+            Assert.AreEqual(typeof(JsonConvertByGetTypeConverter<Sub>), new JsonConvertByGetTypeConverter().CreateConverter(typeof(Sub), JsonSerializerOptions.Default)?.GetType());
         }
 
         [Test]
@@ -66,11 +82,27 @@ namespace Flub.Utils.Json.Test
             Assert.Throws<NotSupportedException>(() =>
             {
                 Utf8JsonReader reader = new();
-                new JsonConvertByGetTypeConverter<int>().Read(ref reader, null, null);
+                new JsonConvertByGetTypeConverter<int>().Read(ref reader, typeof(string), JsonSerializerOptions.Default);
             });
             string json = "{\"Sub\":{}}";
             Assert.Throws<NotSupportedException>(() => JsonSerializer.Deserialize<SubWithPropertyAttribute>(json));
             Assert.Throws<NotSupportedException>(() => JsonSerializer.Deserialize<SubWithPropertyAttributeBase>(json));
+        }
+
+        [Test]
+        public void WriteThrowsArgumentNullExceptionTest()
+        {
+            Assert.Throws<ArgumentNullException>(() =>
+            {
+                using MemoryStream stream = new();
+                using Utf8JsonWriter writer = new(stream);
+#pragma warning disable CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
+                new JsonConvertByGetTypeConverter<string?>().Write(writer, null, JsonSerializerOptions.Default);
+#pragma warning restore CS8714 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'notnull' constraint.
+            });
+            Assert.DoesNotThrow(() => JsonSerializer.Serialize<SubWithClassAttribute?>(null));
+            Assert.DoesNotThrow(() => JsonSerializer.Serialize<SubWithNullablePropertyAndPropertyAttribute>(new()));
+            Assert.DoesNotThrow(() => JsonSerializer.Serialize<SubWithNullablePropertyAndPropertyAttributeBase>(new()));
         }
 
         [Test]

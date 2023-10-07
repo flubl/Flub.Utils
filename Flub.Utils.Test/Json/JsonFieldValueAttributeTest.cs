@@ -1,5 +1,4 @@
 ﻿using NUnit.Framework;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -12,7 +11,9 @@ namespace Flub.Utils.Json.Test
         public void ConstructorTest()
         {
             Assert.DoesNotThrow(() => new JsonFieldValueAttribute("Value"));
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentException>(() => new JsonFieldValueAttribute(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentException>(() => new JsonFieldValueAttribute(string.Empty));
         }
 
@@ -20,7 +21,7 @@ namespace Flub.Utils.Json.Test
         public void GetCustomAttributeTest()
         {
             static void CheckValue(TestEnum value) =>
-                typeof(TestEnum).GetField(value.ToString()).GetCustomAttribute<JsonFieldValueAttribute>();
+                typeof(TestEnum).GetField(value.ToString())?.GetCustomAttribute<JsonFieldValueAttribute>();
 
             Assert.DoesNotThrow(() => { CheckValue(TestEnum.Value); });
             Assert.Throws<ArgumentException>(() => { CheckValue(TestEnum.Null); });
@@ -31,7 +32,9 @@ namespace Flub.Utils.Json.Test
         {
             [JsonFieldValue("Value")]
             Value,
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             [JsonFieldValue(null)]
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             Null,
             [JsonFieldValue("")]
             Empty

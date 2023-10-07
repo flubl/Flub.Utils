@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
+﻿using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,10 +10,12 @@ namespace Flub.Utils.Json
     /// </summary>
     public sealed class JsonFieldEnumConverter : JsonConverterFactory
     {
+        /// <inheritdoc/>
         public override bool CanConvert(Type typeToConvert) => typeToConvert.IsEnum;
 
-        public override JsonConverter CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
-            (JsonConverter)Activator.CreateInstance(typeof(JsonFieldEnumConverter<>).MakeGenericType(typeToConvert));
+        /// <inheritdoc/>
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
+            (JsonConverter?)Activator.CreateInstance(typeof(JsonFieldEnumConverter<>).MakeGenericType(typeToConvert));
     }
 
     /// <summary>
@@ -33,7 +32,7 @@ namespace Flub.Utils.Json
         private readonly static IReadOnlyDictionary<T, string> values = typeof(T).GetFields()
             .Where(f => f.FieldType == typeof(T) && f.GetCustomAttribute<JsonIgnoreAttribute>() is null)
             .ToDictionary(
-                f => (T)f.GetRawConstantValue(),
+                f => f.GetRawConstantValue() is object value ? (T)Enum.ToObject(typeof(T), value) : throw new Exception("raw constant value was null"),
                 f => f.GetCustomAttribute<JsonFieldValueAttribute>() is JsonFieldValueAttribute a ? a.Value : f.Name)
             .ToImmutableDictionary();
 
@@ -70,7 +69,7 @@ namespace Flub.Utils.Json
 
         private static string Convert(T value)
         {
-            if (values.TryGetValue(value, out string result))
+            if (values.TryGetValue(value, out string? result) && result != null)
                 return result;
             throw new JsonException($"The value '{value}' could not be converted to JSON.");
         }
@@ -85,10 +84,10 @@ namespace Flub.Utils.Json
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             EnsureNoDuplicateValues();
-            string value = reader.GetString();
-            return EnumHasFlags ?
-                (T)Enum.ToObject(typeToConvert, value.Split(FlagsSeperator).Select(i => System.Convert.ToInt64(Convert(i))).Aggregate((v, i) => v + i)) :
-                Convert(value);
+            string? value = reader.GetString();
+            return value == null ? throw new NullReferenceException("value can not be null")
+                : EnumHasFlags ? (T)Enum.ToObject(typeToConvert, value.Split(FlagsSeperator).Select(i => System.Convert.ToInt64(Convert(i))).Aggregate((v, i) => v + i))
+                    : Convert(value);
         }
 
         /// <summary>

@@ -1,8 +1,6 @@
 ﻿using Moq;
 using NUnit.Framework;
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -70,7 +68,6 @@ namespace Flub.Utils.Json.Test
             Assert.AreEqual(expected.DefaultIgnoreCondition, actual.DefaultIgnoreCondition);
             Assert.AreEqual(expected.DictionaryKeyPolicy, actual.DictionaryKeyPolicy);
             Assert.AreEqual(expected.Encoder, actual.Encoder);
-            Assert.AreEqual(expected.IgnoreNullValues, actual.IgnoreNullValues);
             Assert.AreEqual(expected.IgnoreReadOnlyFields, actual.IgnoreReadOnlyFields);
             Assert.AreEqual(expected.IgnoreReadOnlyProperties, actual.IgnoreReadOnlyProperties);
             Assert.AreEqual(expected.IncludeFields, actual.IncludeFields);
@@ -122,9 +119,11 @@ namespace Flub.Utils.Json.Test
         [Test]
         public void GetWithoutConvertersThrowsArgumentNullException()
         {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             Assert.Throws<ArgumentNullException>(() => JsonSerializerOptionsExtension.GetWithoutConverters(null));
             Assert.Throws<ArgumentNullException>(() => JsonSerializerOptionsExtension.GetWithoutConverters(options, null));
             Assert.Throws<ArgumentNullException>(() => JsonSerializerOptionsExtension.GetWithoutConverter<JsonStringEnumConverter>(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
         }
     }
 }
